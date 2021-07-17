@@ -42,5 +42,5 @@ app.use('/api', scheduling);
 app.use('/api', checkcep);
 
 //Server listening to connections
-const PORT = 3000;
+const PORT = 5000;
 app.listen(PORT || process.env.PORT, () => console.log(`Server running on Port ${PORT}`));

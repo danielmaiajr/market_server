@@ -34,7 +34,8 @@ router.post('/orders', passport.authenticate('jwt', { session: false }), (req, r
 				'FROM cart_item ci INNER JOIN product p ' +
 				'ON ci.product_id = p.product_id ' +
 				'WHERE customer_id = ?;';
-			connection.query(new_query, [ results.insertId, body.customer_id ], function(error, results, fields) {
+			connection.query(new_query, [ results.insertId, req.user.id ], function(error, results, fields) {
+				console.log(results);
 				if (error) {
 					return connection.rollback(function() {
 						return res.status(400).json(error.sqlMessage);
@@ -112,9 +113,13 @@ router.get('/orders/:id', passport.authenticate('jwt', { session: false }), (req
 	const order_id = req.params.id;
 	const customer_id = req.user.id;
 	const my_query =
-		'select ? as customer_id, p.product_id, p.product_name, p.image_url, oi.price, oi.quantity, (oi.price*oi.quantity) as total from product p inner join order_item oi on p.product_id=oi.product_id and oi.order_id=? where p.product_id in (select product_id from order_item where order_id =(select order_id from `order` where order_id = ? and customer_id = ?));';
+		'SELECT p.product_id, p.product_name, p.image_url, oi.price, oi.quantity, (oi.price * oi.quantity) AS total ' +
+		'FROM product p INNER JOIN order_item oi ON p.product_id = oi.product_id AND oi.order_id = ? ' +
+		'WHERE p.product_id IN ' +
+		'(SELECT product_id FROM order_item WHERE order_id = ' +
+		'(SELECT order_id FROM `order` WHERE order_id = ? AND customer_id = ?));';
 
-	req.connection.query(my_query, [ customer_id, order_id, order_id, customer_id ], (error, results, fields) => {
+	req.connection.query(my_query, [ order_id, order_id, customer_id ], (error, results, fields) => {
 		if (error) return res.json(error.sqlMessage);
 		return res.json(results);
 	});
@@ -130,47 +135,7 @@ router.put('/orders/:id', passport.authenticate('jwt', { session: false }), (req
 	req.connection.query(my_query, [ order_id, customer_id ], (error, results, fields) => {
 		if (error) return res.status(400).json(error.sqlMessage);
 		if (results.changedRows === 1) {
-			nodemailer.createTestAccount((err, account) => {
-				if (err) {
-					console.error('Failed to create a testing account. ' + err.message);
-					return process.exit(1);
-				}
-
-				console.log('Credentials obtained, sending message...');
-
-				// Create a SMTP transporter object
-				let transporter = nodemailer.createTransport({
-					host: account.smtp.host,
-					port: account.smtp.port,
-					secure: account.smtp.secure,
-					auth: {
-						user: account.user,
-						pass: account.pass
-					}
-				});
-
-				// Message object
-				let message = {
-					from: 'Sender Name <sender@example.com>',
-					to: 'Recipient <recipient@example.com>',
-					subject: 'Nodemailer is unicode friendly ✔',
-					text: 'Hello to myself!',
-					html: `<p><b>Ordem Cancelada</b></p>`
-				};
-
-				transporter.sendMail(message, (err, info) => {
-					if (err) {
-						console.log('Error occurred. ' + err.message);
-						return process.exit(1);
-					}
-
-					console.log('Message sent: %s', info.messageId);
-					// Preview only available when sending through an Ethereal account
-					console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
-
-					return res.json({ order: 'success' });
-				});
-			});
+			return res.json({ order: 'success' });
 		} else {
 			return res.json({ order: 'Não foi cancelada' });
 		}

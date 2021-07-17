@@ -1,0 +1,74 @@
+Criar tabela de sections e subsections
+
+  ================================
+  Field         |Type
+  --------------------------------
+  section_id    |int
+  section_name  |varchar(20)
+  --------------------------------
+
+  =======================================
+  Field           |Type           |key  |
+  ---------------------------------------
+  subsection_id   |int            |PRI  |
+  section_id      |int            |MUL  |
+  subsection_name |varchar(20)    |     |
+  ---------------------------------------
+
+Relacionar a tabela de produtos com a tabela de sections, criando um subsection_id em cada produto
+
+Criar as rotas para as duas tabelas
+
+  POST sections
+    DESC: 
+      Criar uma section na tabela section
+    BODY: 
+      section_name
+
+  POST sections/subsection
+    DESC: 
+      Criar uma subsection na tabela subsection referenciando a tabela section
+    BODY: 
+      section_id
+      subsection_name
+
+  GET sections
+    DESC:
+      Retorna todas as sections criadas
+
+  GET sections/subsections
+    DESC:
+      Retorna todas as subsections criadas
+
+ GET sections/subsection/:section_id
+    DESC:
+      Retorna o nome da section e as suas subsections
+    PARAMS:
+      section_id
+
+  PUT sections/:section_id
+    DESC:
+      Troca o nome da section
+    PARAMS:
+      section_id
+    BODY:
+      section_name
+    
+  PUT sections/subsection/:subsection_id
+    DESC:
+      Troca o nome ou o section_id
+    PARAMS:
+      subsection_id
+    BODY:
+      subsection_name
+      section_id
+
+  DELETE
+    DESC: Por enquanto não pode deleta-las, apenas renomer e relinkar
+
+Pagina inicial
+Login com google
+Login com facebook
+
+
+  

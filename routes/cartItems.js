@@ -12,6 +12,8 @@ SE ELE NÃO EXISTER PARA O USUARIO - INSERIR O ITEM COM A QUANTIDADE
 COMMIT
 */
 
+/*@params: product_id
+*/
 router.put('/cart-items/add', passport.authenticate('jwt', { session: false }), (req, res) => {
 	const { product_id } = req.body;
 	const customer_id = req.user.id;
@@ -28,7 +30,7 @@ router.put('/cart-items/add', passport.authenticate('jwt', { session: false }), 
 			if (error) return connection.rollback(() => res.status(500).json(err));
 
 			if (results.length === 0) {
-				my_query = 'INSERT INTO cart_item(customer_id, product_id,quantity) VALUES (?,?,1)';
+				my_query = 'INSERT INTO cart_item(customer_id, product_id, quantity) VALUES (?, ?, 1)';
 
 				connection.query(my_query, [ customer_id, product_id ], (error, results, fields) => {
 					if (error) return connection.rollback(() => res.status(500).json(err));
@@ -130,7 +132,7 @@ router.get('/cart-items', passport.authenticate('jwt', { session: false }), (req
 	});
 });
 
-//IT'S DANGEROURS - NEED TO KNOW WHERE TO USE IT
+//IT'S DANGEROURS - USED TO CLEAN THE CART
 router.delete('/cart-items', passport.authenticate('jwt', { session: false }), (req, res) => {
 	const customer_id = req.user.id;
 

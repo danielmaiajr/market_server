@@ -4,6 +4,26 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const nodemailer = require('nodemailer');
+/* const { check, validationResult, body } = require('express-validator');
+
+const PostCustomerSchema = [
+	body('email', 'Email Inválido').isEmail().normalizeEmail().not().isEmpty(),
+	body('password').not().isEmpty(),
+	body('first_name').not().isEmpty(),
+	body('phone').not().isEmpty().isMobilePhone('pt-BR')
+];
+
+const validation = (req, res, next) => {
+	const errors = validationResult(req);
+	if (!errors.isEmpty()) {
+		const response = {
+			[errors.array()[0].param]: errors.array()[0].msg
+		};
+		return res.status(400).json(response);
+	} else {
+		next();
+	}
+}; */
 
 //THIS ROUTE NEED
 //CHECK USER INPUT - MAYBE CHECK WITH A VALIDATION MIDDLEWARE
@@ -14,114 +34,132 @@ const nodemailer = require('nodemailer');
 
 //THIS ROUTE IS USING JWT WITH LOCAL STORAGE AND PASSPORTJS
 
-router.post('/customers', (req, res) => {
-	const { email, password, first_name, last_name, phone, cpf } = req.body;
-	let my_query = 'SELECT email FROM customer WHERE email = ?';
+router.post(
+	'/customers',
+	/*  PostCustomerSchema, validation, */ (req, res) => {
+		const { email, password, first_name, phone } = req.body;
 
-	req.connection.query(my_query, [ email ], async (error, results, fields) => {
-		if (error) return res.json(error.sqlMessage);
-		if (results.length > 0) return res.status(400).json({ register: 'Email já cadastrado' });
+		let my_query = 'SELECT email FROM customer WHERE email = ?';
 
-		// Encriptar a senha
-		const salt = await bcrypt.genSalt(10);
-		const hash = await bcrypt.hash(password, salt);
+		req.connection.query(my_query, [ email ], async (error, results, fields) => {
+			if (error) return res.json(error.sqlMessage);
+			if (results.length > 0) return res.status(400).json({ register: 'Email já cadastrado' });
 
-		user = {
-			email,
-			pass_word: hash,
-			first_name
-		};
+			// Encriptar a senha
+			const salt = await bcrypt.genSalt(10);
+			const hash = await bcrypt.hash(password, salt);
 
-		my_query = 'INSERT INTO customer SET ?';
-		req.connection.query(my_query, [ user ], (error, results, fields) => {
-			if (error) return console.log(error);
-
-			const payload = {
-				id: results.insertId
+			user = {
+				email,
+				pass_word: hash,
+				first_name,
+				phone
 			};
 
-			// Gerar o token para o usuario
-			jwt.sign(payload, 'SECRET', { expiresIn: '7d' }, (err, token) => {
-				if (err) console.log(err);
+			my_query = 'INSERT INTO customer SET ?';
+			req.connection.query(my_query, [ user ], (error, results, fields) => {
+				if (error) return console.log(error);
 
-				//Enviar token por email
-				nodemailer.createTestAccount((err, account) => {
-					if (err) {
-						console.error('Failed to create a testing account. ' + err.message);
-						return process.exit(1);
-					}
+				const payload = {
+					id: results.insertId
+				};
 
-					console.log('Credentials obtained, sending message...');
+				// Gerar o token para o usuario
+				jwt.sign(payload, 'SECRET', { expiresIn: '7d' }, (err, token) => {
+					if (err) console.log(err);
 
-					// Create a SMTP transporter object
-					let transporter = nodemailer.createTransport({
-						host: account.smtp.host,
-						port: account.smtp.port,
-						secure: account.smtp.secure,
-						auth: {
-							user: account.user,
-							pass: account.pass
-						}
-					});
-
-					// Message object
-					let message = {
-						from: 'Sender Name <sender@example.com>',
-						to: 'Recipient <recipient@example.com>',
-						subject: 'Nodemailer is unicode friendly ✔',
-						text: 'Hello to myself!',
-						html: `<p><b>Token</b> ${token}</p>`
-					};
-
-					transporter.sendMail(message, (err, info) => {
+					//Enviar token por email
+					nodemailer.createTestAccount((err, account) => {
 						if (err) {
-							console.log('Error occurred. ' + err.message);
+							console.error('Failed to create a testing account. ' + err.message);
 							return process.exit(1);
 						}
 
-						console.log('Message sent: %s', info.messageId);
-						// Preview only available when sending through an Ethereal account
-						console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+						console.log('Credentials obtained, sending message...');
 
-						return res.json({ customer: 'Conta criada', token: 'Verifique o email para ativar a conta' });
+						// Create a SMTP transporter object
+						let transporter = nodemailer.createTransport({
+							host: account.smtp.host,
+							port: account.smtp.port,
+							secure: account.smtp.secure,
+							auth: {
+								user: account.user,
+								pass: account.pass
+							}
+						});
+
+						// Message object
+						let message = {
+							from: 'Sender Name <sender@example.com>',
+							to: 'Recipient <recipient@example.com>',
+							subject: 'Nodemailer is unicode friendly ✔',
+							text: 'Hello to myself!',
+							html: `<p><b>Token</b> ${token}</p>`
+						};
+
+						transporter.sendMail(message, (err, info) => {
+							if (err) {
+								console.log('Error occurred. ' + err.message);
+								return process.exit(1);
+							}
+
+							console.log('Message sent: %s', info.messageId);
+							// Preview only available when sending through an Ethereal account
+							console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+
+							return res.json({
+								customer: 'Conta criada',
+								token: 'Verifique o email para ativar a conta'
+							});
+						});
 					});
 				});
 			});
 		});
-	});
-});
+	}
+);
 
 //-------------------------------------------------------------------------------------------------------------
 
-router.post('/customers/login', (req, res) => {
-	const { email, password } = req.body;
+router.post(
+	'/customers/login',
+	/* 	[
+		// email must be an email
+		check('email').isEmail(),
+		// password must be at least 5 chars long
+		check('password').isLength({ min: 3 })
+	],
+	validation, */
+	(req, res) => {
+		const { email, password } = req.body;
 
-	let my_query = 'SELECT customer_id, email, pass_word, first_name, active FROM customer WHERE email = ?';
-	req.connection.query(my_query, [ email ], (error, results, fields) => {
-		if (error) return res.json(error.sqlMessage);
-		if (results.length == 0) return res.status(400).json({ login: 'Usuario ou senha incorreta' });
+		let my_query = 'SELECT customer_id, email, pass_word, first_name, active FROM customer WHERE email = ?';
+		req.connection.query(my_query, [ email ], (error, results, fields) => {
+			if (error) return res.json(error.sqlMessage);
+			if (results.length == 0) return res.status(400).json({ login: 'Usuario ou senha incorreta' });
 
-		if (!results[0].active) return res.status(400).json({ login: 'Usuario não está ativado' });
+			if (!results[0].active) return res.status(400).json({ login: 'Usuario não está ativado' });
 
-		const { customer_id, email, pass_word, first_name } = results[0];
-		bcrypt.compare(password, pass_word, (err, result) => {
-			if (!result) return res.status(400).json({ login: 'Usuario ou senha incorreta' });
+			const { customer_id, email, pass_word, first_name } = results[0];
+			bcrypt.compare(password, pass_word, (err, result) => {
+				if (!result) return res.status(400).json({ login: 'Usuario ou senha incorreta' });
 
-			const payload = {
-				id: customer_id,
-				email: email,
-				name: first_name
-			};
+				const payload = {
+					id: customer_id,
+					email: email,
+					name: first_name
+				};
 
-			// Gerar o token para o usuario
-			jwt.sign(payload, 'SECRET', { expiresIn: '7d' }, (err, token) => {
-				if (err) console.log(err);
-				//Enviar token
-				return res.json({ success: true, token: 'Bearer ' + token });
+				// Gerar o token para o usuario
+				jwt.sign(payload, 'SECRET', { expiresIn: '7d' }, (err, token) => {
+					if (err) console.log(err);
+					//Enviar token
+					return res.json({ success: true, token: 'Bearer ' + token });
+				});
 			});
 		});
-	});
-});
+	}
+);
 
 //-----------------------------------------------------------------------------------------------------------------
 

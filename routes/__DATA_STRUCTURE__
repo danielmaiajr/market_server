@@ -1,0 +1,78 @@
+
+CUSTOMERS
+[
+  customer_id,
+  email,
+  pass_word,
+  firs_name,
+  last_name,
+  phone,
+  cpf,
+  sex,
+  birth_date,
+  active
+]
+
+ADDRESS
+[
+  address_id,
+  customer_id,
+  neightborhood,
+  street,
+  num,
+  cep
+]
+
+PRODUCTS
+[
+  product_id,
+  product_name,
+  price,
+  image_url,
+  section,
+  ranking
+]
+
+CART ITEMS
+[
+  customer_id,
+  product_id,
+  quantity
+]
+
+ORDERS
+[
+  order_id,
+  customer_id,
+  payment_method_id,
+  order_status_id,
+  ship_date,
+  create_on,
+  cep,
+  neightborhood,
+  street,
+  complement,
+  num
+]
+
+ORDER ITEMS
+[
+ order_id,
+ product_id,
+ price,
+ quantity 
+]
+
+SECTIONS
+[
+  section_id,
+  section_name
+]
+
+SUB SECTIONS
+[
+  subsection_id,
+  section_id,
+  subsection_name
+]
+
